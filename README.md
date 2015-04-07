@@ -26,7 +26,9 @@ Hierarchical states make it much easier to model complex systems, for example, a
     VerifiedRecently
        .When(eBeenHereAWhile, (m, s, e) =>
        {
-          Trace.WriteLine("User has now been a member for over 24 hours - give them additional priviledges for example");
+          Trace.WriteLine("User has now been a member for over 24 hours");
+          // give them additional priviledges perhaps
+          // and transition to a new state
           return VerifiedAWhileAgo;
        });
 
@@ -40,11 +42,13 @@ A state machine class is defined using a self-referencing generic and an Event t
      ...
     }
 
-Compared to the Wikipedia definition of a hierarchical state machine there is one further addition which is a set of methods and properties to handle time-based events using an efficient 'next-occurrence' approach. The exposed property `NextTimedEventAt` can be used to decide which state machine to load from a database and execute a `Tick` on next. This temporal capability is useful for state machines that implement a user messaging flow for a website - e.g. an email after one week provided they haven't cancelled, and then another each month after that.
+The state machine instance may contain additional properties (e.g. the identity of the user). It would not normally contain complex objects as it should be easily serializable to a database unless it is used only for the duration of the application's execution.
 
+You can execute code when a state is entered or when it is left. Hierarchical states are entered and left in the appropriate order (reversed on leaving). Whilst you can include complex business logic in the state machine itself for such transitions, I find it better to instead keep that outside and expose additional C# events that fire when the business logic needs to be executed. This keeps the state machine implementation 'pure', dealing only with the definition of states and transitions between states and not the logic that happens when a state transitions.
+
+Compared to the Wikipedia definition of a hierarchical state machine there is one further addition which is a set of methods and properties to handle time-based events and recurring events using an efficient 'next-occurrence' approach. The exposed property `NextTimedEventAt` can be mapped to a database column with an index allowing your program to easily find any state machines that need to be re-loaded and to have their `Tick` method called.
+
+An example of the use of this temporal capability would be the implementation of user messaging flow for a website. The user creates an account, verifies their email, uses the system for a while, then deletes their account. After creating their account a reminder Event is added to send them a welcome email, a week later a follow up 'how is it going' email and so on. When the state machine loads from the database it can check that the user has not deleted their account, can fire an event to send the appropriate email and can schedule the next email.
 
 See [the included example](blob/master/AboditStateMachine/Abodit/StateMachine/DemoStateMachine.cs) for details on how to specify and use the state machine.
-
-
-
 
